@@ -1,0 +1,3 @@
+[console_scripts]
+Rosetta-learn = Rosetta_learn.cli:main
+

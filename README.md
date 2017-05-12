@@ -12,10 +12,10 @@ Rosetta-learn requires an input xlsx file of protein sequencing data and their r
 
 Example:
 
-| Sequences    | Rosetta Metric 1 | Output        |
-| -------------|----------------- |:-------------:|
-| actgactg ... |     12           | 3      |
-| actgactg ... |      3           | 5      |
+| Sequences    | Rosetta Metric 1 | Rosetta Metric 2 | ... | Output        |
+| -------------|----------------- |------------------|-----|:-------------:|
+| actgactg ... |     12           |   4              | ... | 3      |
+| actgactg ... |      3           |    8.3           | ... | 5      |
 
 
 

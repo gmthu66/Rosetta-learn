@@ -3,7 +3,7 @@ import os, sys
 import errno
 import pandas as pd
 import numpy as np
-import dnamodel as dm
+import proteinmodel as dm
 
 
 

@@ -1,28 +1,28 @@
-# DNAlearn
+# Rosetta-learn
 
-DNAlearn is a recommender system for DNA sequence optimization. Users who want to model their high-througput DNA sequencing results can do so easily with DNAlearn. 
+Rosetta-learn is a recommender system for protein sequence optimization using Rosetta. Users who want to model their high-througput protein sequencing results and associated Rosetta metrics can do so easily with Rosetta-learn. 
 
-DNAlearn builds and tunes an optimal convolutional neural network (CNN) to model DNA sequencing data. Using this model, DNAlearn recommends an optimized sequence - predicted to maximize experimental output. 
+Rosetta-learn builds and tunes an optimal deep neural network (DNN) to model protein data. Using this model, Rosetta-learn recommends an optimized sequence - predicted to maximize experimental output. 
 
 ## Installation
-	pip install dnalearn
+	pip install rosetta-learn
 
 ## Usage
-DNAlearn requires an input xlsx file of DNA sequencing data with the following structure:
+Rosetta-learn requires an input xlsx file of protein sequencing data and their respecitve Rosetta metrics with the following structure:
 
 Example:
 
-| Sequences     | Output        |
-| ------------- |:-------------:|
-| actgactg ...  | 3      |
-| actgactg ...  | 5      |
+| Sequences    | Rosetta Metric 1 | Output        |
+| -------------|----------------- |:-------------:|
+| actgactg ... |     12           | 3      |
+| actgactg ... |      3           | 5      |
 
 
 
 To generate a new model using the command line interface:
 
-	dnalearn input.xlsx
+	rosetta-learn input.xlsx
 
 To retrain a previously generated model using the command line interface:
 
-	dnalearn input.xlsx -m model.h5
+	rosetta-learn input.xlsx -m model.h5

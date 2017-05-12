@@ -1,13 +1,13 @@
 from setuptools import setup
 
-setup(name='dnalearn',
-      version='0.2',
-      description='Recommender system for sequence design and optimization',
-      url='https://github.com/tamimeur/DNAlearn.git',
-      author='Leli Ami',
+setup(name='Rosetta-learn',
+      version='0.1',
+      description='Recommender system for protein sequence design and optimization using Rosetta',
+      url='https://github.com/tamimeur/Rosetta-learn.git',
+      author='Tileli Amimeur',
       author_email='tamimeur@gmail.com',
       license='MIT',
-      packages=['dnalearn'],
+      packages=['Rosetta-learn'],
       test_suite='nose.collector',
       tests_require=['nose'],
       install_requires=[
@@ -16,6 +16,6 @@ setup(name='dnalearn',
       zip_safe=False,
       entry_points={
         'console_scripts': [
-            'dnalearn = dnalearn.cli:main',
+            'Rosetta-learn = Rosetta-learn.cli:main',
         ],
       })

@@ -57,11 +57,11 @@ def my_custom_r2_func(ground_truth, predictions):
 
 
 
-class dnaModel(object):
+class proteinModel(object):
 	""" An optimal CNN model for DNA sequences """
 
 	def __init__(self, df, filename = ''):
-		"""Initialize dnaModel object
+		"""Initialize proteinModel object
 		The input df should contain only two columns: sequence + expression"""
 
 		self.filename = filename
@@ -76,22 +76,27 @@ class dnaModel(object):
 
 		df = self.df
 		############# Format NN inputs #############
-		seq_len = len(df['sequence'][0])
-		X_data = np.empty([len(df),seq_len,4])
-		indx = 0
+		# seq_len = len(df['sequence'][0])
+		# X_data = np.empty([len(df),seq_len,4])
+		# indx = 0
 
-		Y_data = np.array(df[['output1']])
+		# Y_data = np.array(df[['output1']])
 
-		for seq in df['sequence']:
-			X_data[indx] = self.__oneHotEncoder(seq)
-			indx += 1
+		# for seq in df['sequence']:
+		# 	X_data[indx] = self.__oneHotEncoder(seq)
+		# 	indx += 1
+
+		X_data = df.iloc[:, :-1].values
+		Y_data = df.iloc[:, -1:].values
+
+		print X_data, Y_data
 
 
 		########## RANDOM TEST/TRAIN SPLIT #########
-		normed_out = preprocessing.StandardScaler().fit_transform(Y_data)
-		xtrain, xtest, ytrain, ytest = train_test_split(X_data, normed_out, test_size=0.15, random_state=42)
-
-		return seq_len, xtrain, ytrain, xtest, ytest
+		#normed_out = preprocessing.StandardScaler().fit_transform(Y_data)
+		#xtrain, xtest, ytrain, ytest = train_test_split(X_data, normed_out, test_size=0.15, random_state=42)
+		xtrain, xtest, ytrain, ytest = train_test_split(X_data, Y_data, test_size=0.15, random_state=42)
+		return 43, xtrain, ytrain, xtest, ytest
 
 	def __opt_model(self):
 		"""bulids a new model and optimizes hyperparams
@@ -181,7 +186,7 @@ class dnaModel(object):
 		"""creates HDF5 file of the current model and saves in cur dir"""
 		ts = time.time()
 		st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
-		self.filename = 'dnamodel'+st+'.h5'
+		self.filename = 'proteinmodel'+st+'.h5'
 		self.model.save(self.filename)  
 		return 0
 

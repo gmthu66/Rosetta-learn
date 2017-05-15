@@ -24,29 +24,45 @@ np.random.seed(1337)
 #	filter lengths [(seq_len/50),(seq_len/25),(seq_len/12),(seq_len/6),(seq_len/3)]
 #	batch size [32,64,128]
 #	epochs [5,10,15]
-def create_model(learn_rate=0.001, neurons = 1, seq_len=15):
+def create_model(loss = 'mean_squared_logarithmic_error', optimizer = 0, learn_rate = 0.0001, l1_neurons = 90, l2_neurons = 20, in_len=93):
 	"""Builds a parameterized CNN Model"""
-	cnn = Sequential()
-	cnn.add(Convolution1D(nb_filter=30,filter_length=6,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
-	cnn.add(Dropout(0.1))
-	cnn.add(Convolution1D(nb_filter=40,filter_length=6,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
+	# cnn = Sequential()
+	# cnn.add(Convolution1D(nb_filter=30,filter_length=6,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
+	# cnn.add(Dropout(0.1))
+	# cnn.add(Convolution1D(nb_filter=40,filter_length=6,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
 
-	cnn.add(Flatten())
+	# cnn.add(Flatten())
 
-	cnn.add(Dense(neurons))
-	cnn.add(Dropout(0.2))
-	cnn.add(Activation('relu'))
+	# cnn.add(Dense(neurons))
+	# cnn.add(Dropout(0.2))
+	# cnn.add(Activation('relu'))
 
-	cnn.add(Dense(1))
-	cnn.add(Activation('linear'))
+	# cnn.add(Dense(1))
+	# cnn.add(Activation('linear'))
+
+	# #compile the model
+	# adam = Adam(lr=learn_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+	# rms = RMSprop(lr=learn_rate, rho=0.9, epsilon=1e-08)
+
+	# cnn.compile(loss='mean_squared_error', optimizer=adam)
+
+	model = Sequential()
+	model.add(Dense(l1_neurons, activation='relu',input_shape=(in_len,)))
+	model.add(Dropout(0.25))
+	model.add(Dense(l2_neurons, activation='relu'))
+	model.add(Dropout(0.25))
+	model.add(Dense(1, activation='sigmoid'))
 
 	#compile the model
 	adam = Adam(lr=learn_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
 	rms = RMSprop(lr=learn_rate, rho=0.9, epsilon=1e-08)
+	#model.compile(loss='mean_squared_error', optimizer=adam)
+	if optimizer == 0:
+		model.compile(loss=loss, optimizer=rms)
+	elif optimizer == 1:
+		model.compile(loss=loss, optimizer=adam)
 
-	cnn.compile(loss='mean_squared_error', optimizer=adam)
-
-	return cnn
+	return model
 
 def my_custom_r2_func(ground_truth, predictions):
 	slope, intercept, r_value, p_value, std_err = stats.linregress(ground_truth.reshape(-1),predictions.reshape(-1))
@@ -106,13 +122,22 @@ class proteinModel(object):
 		
 		seq_len, xtrain, ytrain, xtest, ytest = self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test
 
-		model = KerasRegressor(build_fn=create_model, nb_epoch=6, batch_size=128, verbose=0)
+		#model = KerasRegressor(build_fn=create_model, nb_epoch=200, batch_size=16, verbose=0)
+		model = KerasRegressor(build_fn=create_model, verbose=0)
 
 		# define the grid search parameters
-		num_bases = [seq_len]
-		learn_rate = [0.001]
-		neurons = [(seq_len/8),(seq_len/4),(seq_len/2)]
-		param_grid = dict(learn_rate=learn_rate, neurons=neurons, seq_len = num_bases)
+		num_metrics = [len(self.df.columns)-1]
+		learn_rate = [0.0001, 0.001, 0.01]
+		#neurons = [(seq_len/8),(seq_len/4),(seq_len/2)]
+		#l1_neurons = [90,70,50]
+		#l2_neurons = [60,40,20,10]
+		l1_neurons = [50]
+		l2_neurons = [60]
+		batch_size = [20, 60]
+		epochs = [50, 100]
+		optimizer = [0,1]
+		loss = ['mean_squared_logarithmic_error','mean_squared_error','poisson']
+		param_grid = dict(batch_size=batch_size, nb_epoch=epochs, optimizer = optimizer, learn_rate=learn_rate, loss=loss, l1_neurons=l1_neurons, l2_neurons=l2_neurons, in_len = num_metrics)
 
 		#specify my own scorer for GridSearchCV that uses r2 instead of the estimator's scorer
 		#try RandomizedSearchCV instead of GridSearchCV
@@ -133,8 +158,8 @@ class proteinModel(object):
 		############ Need to extract best params and make a new model with it #############
 		###################################################################################
 		best_params = grid_result.best_params_
-		tuned_model = create_model(best_params['learn_rate'], best_params['neurons'], best_params['seq_len'])
-		tuned_model.fit(xtrain, ytrain, batch_size=128, nb_epoch=6, verbose=1)
+		tuned_model = create_model(best_params['loss'], best_params['optimizer'], best_params['learn_rate'], best_params['l1_neurons'], best_params['l2_neurons'], best_params['in_len'])
+		tuned_model.fit(xtrain, ytrain, nb_epoch=best_params['nb_epoch'], batch_size=best_params['batch_size'], verbose=1)
 		predicted = tuned_model.predict(xtest)
 
 		slope, intercept, r_value, p_value, std_err = stats.linregress(ytest.reshape(-1),predicted.reshape(-1))

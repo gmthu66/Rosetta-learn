@@ -60,7 +60,7 @@ def main(input_file, model):
 
     dnaCNN = dm.proteinModel(df, filename=model) 
     
-    # dnaCNN.train()
+    dnaCNN.train()
     
     # dnaCNN.design()
 

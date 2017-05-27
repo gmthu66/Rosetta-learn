@@ -4,6 +4,7 @@ from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution1D
 from keras.optimizers import RMSprop, SGD, Adam
 from keras.wrappers.scikit_learn import KerasRegressor
+from keras.regularizers import WeightRegularizer, l2 # import l2 regularizer
 import random
 import pandas as pd
 from sklearn.model_selection import GridSearchCV, train_test_split
@@ -11,6 +12,9 @@ from sklearn import preprocessing
 from sklearn.metrics import make_scorer
 import scipy.stats as stats
 import datetime, time
+from matplotlib import pyplot as plt
+import seaborn as sea
+import plotly.plotly as py
 
 np.random.seed(1337)
 
@@ -24,34 +28,42 @@ np.random.seed(1337)
 #	filter lengths [(seq_len/50),(seq_len/25),(seq_len/12),(seq_len/6),(seq_len/3)]
 #	batch size [32,64,128]
 #	epochs [5,10,15]
-def create_model(loss = 'mean_squared_logarithmic_error', optimizer = 0, learn_rate = 0.0001, l1_neurons = 90, l2_neurons = 20, in_len=93):
-	"""Builds a parameterized CNN Model"""
-	# cnn = Sequential()
-	# cnn.add(Convolution1D(nb_filter=30,filter_length=6,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
-	# cnn.add(Dropout(0.1))
-	# cnn.add(Convolution1D(nb_filter=40,filter_length=6,input_dim=4,input_length=seq_len,border_mode="same", activation='relu'))
 
-	# cnn.add(Flatten())
+def conv_model(loss = 'mean_squared_error', optimizer = 0, learn_rate = 0.001, l1_neurons = 90, l2_neurons = 20, l3_neurons = 10, in_len=93):
+	cnn = Sequential()
+	cnn.add(Convolution1D(nb_filter=30,filter_length=6,input_dim=3,input_length=43,border_mode="same", activation='relu'))
+	cnn.add(Dropout(0.1))
+	cnn.add(Convolution1D(nb_filter=40,filter_length=6,input_dim=3,input_length=43,border_mode="same", activation='relu'))
 
-	# cnn.add(Dense(neurons))
-	# cnn.add(Dropout(0.2))
-	# cnn.add(Activation('relu'))
+	cnn.add(Flatten())
 
-	# cnn.add(Dense(1))
-	# cnn.add(Activation('linear'))
+	cnn.add(Dense(l1_neurons))
+	cnn.add(Dropout(0.2))
+	cnn.add(Activation('relu'))
 
-	# #compile the model
-	# adam = Adam(lr=learn_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-	# rms = RMSprop(lr=learn_rate, rho=0.9, epsilon=1e-08)
+	cnn.add(Dense(1))
+	cnn.add(Activation('linear'))
 
-	# cnn.compile(loss='mean_squared_error', optimizer=adam)
+	#compile the model
+	adam = Adam(lr=learn_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+	rms = RMSprop(lr=learn_rate, rho=0.9, epsilon=1e-08)
+
+	cnn.compile(loss='mean_squared_error', optimizer=adam)
+
+	return cnn
+
+def ff_model(loss = 'mean_squared_error', optimizer = 0, learn_rate = 0.001, l1_neurons = 93, l2_neurons = 20, l3_neurons = 10, in_len=93):
+	"""Builds a parameterized NN Model"""
 
 	model = Sequential()
-	model.add(Dense(l1_neurons, activation='relu',input_shape=(in_len,)))
-	model.add(Dropout(0.25))
+	model.add(Dense(l1_neurons, activation='relu',input_dim=in_len)) #, W_regularizer=WeightRegularizer(l1=0.001, l2=0.001)))))
+	#model.add(Dense(1, activation='linear',input_dim=in_len)) #, W_regularizer=WeightRegularizer(l1=0.001, l2=0.001)))))
+	#model.add(Dropout(0.30))
 	model.add(Dense(l2_neurons, activation='relu'))
-	model.add(Dropout(0.25))
-	model.add(Dense(1, activation='sigmoid'))
+	# model.add(Dropout(0.25))
+	# model.add(Dense(l3_neurons, activation='relu'))
+	# model.add(Dropout(0.25))
+	model.add(Dense(1, activation='relu'))
 
 	#compile the model
 	adam = Adam(lr=learn_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -60,7 +72,9 @@ def create_model(loss = 'mean_squared_logarithmic_error', optimizer = 0, learn_r
 	if optimizer == 0:
 		model.compile(loss=loss, optimizer=rms)
 	elif optimizer == 1:
-		model.compile(loss=loss, optimizer=adam)
+		model.compile(loss=loss, optimizer='adam')
+	elif optimizer == 2:
+		model.compile(loss=loss, optimizer='sgd')
 
 	return model
 
@@ -69,8 +83,6 @@ def my_custom_r2_func(ground_truth, predictions):
 	print "..."
 	return r_value**2
 	
-
-
 
 
 class proteinModel(object):
@@ -92,20 +104,22 @@ class proteinModel(object):
 
 		df = self.df
 		############# Format NN inputs #############
-		# seq_len = len(df['sequence'][0])
-		# X_data = np.empty([len(df),seq_len,4])
-		# indx = 0
+		#seq_len = len(df['sequence'][0])
+		seq_len = 43
+		X_data = np.empty([len(df),seq_len,20])
+		indx = 0
 
-		# Y_data = np.array(df[['output1']])
+		Y_data = np.array(df[['output1']])
 
-		# for seq in df['sequence']:
-		# 	X_data[indx] = self.__oneHotEncoder(seq)
-		# 	indx += 1
+		#for seq in df['sequence']:
+		for seq in list(df.index.values):
+			X_data[indx] = self.__oneHotEncoder(seq)
+			indx += 1
 
-		X_data = df.iloc[:, :-1].values
-		Y_data = df.iloc[:, -1:].values
+		# X_data = df.iloc[:, :-1].values
+		# Y_data = df.iloc[:, -1:].values
 
-		print X_data, Y_data
+		#print X_data, Y_data
 
 
 		########## RANDOM TEST/TRAIN SPLIT #########
@@ -123,21 +137,28 @@ class proteinModel(object):
 		seq_len, xtrain, ytrain, xtest, ytest = self.seq_len, self.X_train, self.Y_train, self.X_test, self.Y_test
 
 		#model = KerasRegressor(build_fn=create_model, nb_epoch=200, batch_size=16, verbose=0)
-		model = KerasRegressor(build_fn=create_model, verbose=0)
+		print xtrain.shape, ytrain.shape
+		model = KerasRegressor(build_fn=conv_model, verbose=0)
 
 		# define the grid search parameters
 		num_metrics = [len(self.df.columns)-1]
-		learn_rate = [0.0001, 0.001, 0.01]
+		learn_rate = [0.001]
 		#neurons = [(seq_len/8),(seq_len/4),(seq_len/2)]
 		#l1_neurons = [90,70,50]
 		#l2_neurons = [60,40,20,10]
-		l1_neurons = [50]
-		l2_neurons = [60]
-		batch_size = [20, 60]
-		epochs = [50, 100]
-		optimizer = [0,1]
-		loss = ['mean_squared_logarithmic_error','mean_squared_error','poisson']
-		param_grid = dict(batch_size=batch_size, nb_epoch=epochs, optimizer = optimizer, learn_rate=learn_rate, loss=loss, l1_neurons=l1_neurons, l2_neurons=l2_neurons, in_len = num_metrics)
+		num_inputs = len(self.df.columns)-1
+		l1_neurons = [40]
+		#l1_neurons = [int((num_inputs+(num_inputs*0.20))), num_inputs, int((num_inputs+(num_inputs*0.20))/2)]
+		#l2_neurons = [num_inputs, int((num_inputs+(num_inputs*0.20))/2)]
+		l2_neurons = [30]
+		l3_neurons = [20]
+		#l2_neurons = [90,60,30]
+		#l3_neurons = [20,10]
+		batch_size = [16]
+		epochs = [100]
+		optimizer = [1]
+		loss = ['mean_squared_error']
+		param_grid = dict(batch_size=batch_size, nb_epoch=epochs, optimizer = optimizer, learn_rate=learn_rate, loss=loss, l1_neurons=l1_neurons, l2_neurons=l2_neurons, l3_neurons=l3_neurons, in_len = num_metrics)
 
 		#specify my own scorer for GridSearchCV that uses r2 instead of the estimator's scorer
 		#try RandomizedSearchCV instead of GridSearchCV
@@ -158,29 +179,113 @@ class proteinModel(object):
 		############ Need to extract best params and make a new model with it #############
 		###################################################################################
 		best_params = grid_result.best_params_
-		tuned_model = create_model(best_params['loss'], best_params['optimizer'], best_params['learn_rate'], best_params['l1_neurons'], best_params['l2_neurons'], best_params['in_len'])
+		tuned_model = conv_model(best_params['loss'], best_params['optimizer'], best_params['learn_rate'], best_params['l1_neurons'], best_params['l2_neurons'], best_params['l3_neurons'], best_params['in_len'])
 		tuned_model.fit(xtrain, ytrain, nb_epoch=best_params['nb_epoch'], batch_size=best_params['batch_size'], verbose=1)
 		predicted = tuned_model.predict(xtest)
 
 		slope, intercept, r_value, p_value, std_err = stats.linregress(ytest.reshape(-1),predicted.reshape(-1))
 		print "R2 of tuned_model: ", r_value**2
+
+		d = {'y_pred': predicted.reshape(-1), 'y_actual': ytest.reshape(-1)}
+		res_df = pd.DataFrame(data=d)
+
+		sea.set(style="ticks", color_codes=True)
+		g = sea.JointGrid(predicted.reshape(-1),ytest.reshape(-1)) #, xlim=(-3,3), ylim=(-3,3))
+		g = g.plot_joint(plt.scatter, color='#3A12D5', edgecolor="white", alpha='0.1')
+		
+		g.ax_joint.set_xticks([0, 1, 0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1])
+		g.ax_joint.set_yticks([0, 1, 0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1])
+		sea.plt.show()
+		
 		return tuned_model, predicted
 
 	def __oneHotEncoder(self,seq):
-		base_dict = {u'A':[1,0,0,0],u'C':[0,1,0,0],u'G':[0,0,1,0],u'T':[0,0,0,1]}
+		base_dict = {u'A':[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+					 u'V':[0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+					 u'I':[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+					 u'L':[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+					 u'P':[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+					 u'F':[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+					 u'W':[0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+					 u'M':[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+					 u'G':[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+					 u'S':[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+					 u'T':[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
+					 u'C':[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
+					 u'Y':[0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+					 u'N':[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
+					 u'Q':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+					 u'D':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0],
+					 u'E':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0],
+					 u'K':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
+					 u'R':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+					 u'H':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}
+					 
+		# base_dict = {u'A':[1,0,0],
+		# 			 u'V':[1,0,0],
+		# 			 u'I':[1,0,0],
+		# 			 u'L':[1,0,0],
+		# 			 u'P':[1,0,0],
+		# 			 u'F':[1,0,0],
+		# 			 u'W':[1,0,0],
+		# 			 u'M':[1,0,0],
+		# 			 u'G':[0,1,0],
+		# 			 u'S':[0,1,0],
+		# 			 u'T':[0,1,0],
+		# 			 u'C':[0,1,0],
+		# 			 u'Y':[0,1,0],
+		# 			 u'N':[0,1,0],
+		# 			 u'Q':[0,1,0],
+		# 			 u'D':[0,0,1],
+		# 			 u'E':[0,0,1],
+		# 			 u'K':[0,0,1],
+		# 			 u'R':[0,0,1],
+		# 			 u'H':[0,0,1]}
 		return np.array([base_dict[x] for x in seq])
 
 	def __oneHotDecoder(self,encseq):
 		dec_seq = ""
 		for x in encseq:
-			if (x == np.array([1,0,0,0])).all():
+			if (x == np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).all():
 				dec_seq += u'A'
-			elif (x == np.array([0,1,0,0])).all():
-				dec_seq += u'C'
-			elif (x == np.array([0,0,1,0])).all():
+			elif (x == np.array([0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).all():
+				dec_seq += u'V'
+			elif (x == np.array([0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).all():
+				dec_seq += u'I'
+			elif (x == np.array([0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).all():
+				dec_seq += u'L'
+			elif (x == np.array([0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).all():
+				dec_seq += u'P'
+			elif (x == np.array([0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).all():
+				dec_seq += u'F'
+			elif (x == np.array([0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0])).all():
+				dec_seq += u'W'
+			elif (x == np.array([0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0])).all():
+				dec_seq += u'M'
+			elif (x == np.array([0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0])).all():
 				dec_seq += u'G'
-			elif (x == np.array([0,0,0,1])).all():
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0])).all():
+				dec_seq += u'S'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0])).all():
 				dec_seq += u'T'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0])).all():
+				dec_seq += u'C'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0])).all():
+				dec_seq += u'Y'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0])).all():
+				dec_seq += u'N'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0])).all():
+				dec_seq += u'Q'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0])).all():
+				dec_seq += u'D'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0])).all():
+				dec_seq += u'E'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0])).all():
+				dec_seq += u'K'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0])).all():
+				dec_seq += u'R'
+			elif (x == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1])).all():
+				dec_seq += u'H'
 		return dec_seq
 
 	def __retrain(self):

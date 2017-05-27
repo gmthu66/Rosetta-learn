@@ -28,35 +28,43 @@ def main(input_file, model):
     col_names[0] = u'sequence'
     col_names[-1] = u'output1'
     raw_data.columns = col_names
+    print raw_data.columns
     
 
     #TO DO: should do this for each column
     df = raw_data[np.isfinite(raw_data['output1'])]
-    df = df.set_index('sequence')
+    #ADD BACK
+    df = df.set_index('sequence') 
 
     #data cleaning needs to be done:
         #remove any columns with low variability
         #then shuffle the data
-    print df.shape
+    #print df.head()
 
     #rescaling input to have mean 0 variance 1 - for efficient backprop
     scaler = MinMaxScaler()
     new_input_df = scaler.fit_transform(df)
     new_input_df = pd.DataFrame(data=new_input_df, index=df.index, columns=df.columns)
-    #new_input_df.hist(figsize=(30, 25))
-
+    
     #eliminating cols with lack of variability
-    new_input_df = new_input_df.drop(new_input_df.columns[new_input_df.var() < 0.002], axis=1)
-    #new_input_df.hist(figsize=(30, 25))
+    #ADD BACK
+    print new_input_df.shape
+    fin_input_df = new_input_df
+    #new_input_df = new_input_df.drop(new_input_df.columns[new_input_df.var() < 0.002], axis=1)
+    fin_input_df = fin_input_df.drop(fin_input_df.columns[fin_input_df.var() < 0.002], axis=1)
 
+    print fin_input_df.shape
+    fin_input_df['output1'] = new_input_df['output1']
+    print fin_input_df.columns
+    #print new_input_df.columns
 
     #shuffle the dataframe here
-    df = new_input_df.sample(frac=1)
-
+    df = fin_input_df.sample(frac=1)
 
     #print new_input_df.head()
 
-    print df.shape
+    
+    #print df['output1']
 
     dnaCNN = dm.proteinModel(df, filename=model) 
     

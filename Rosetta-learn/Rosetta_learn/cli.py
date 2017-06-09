@@ -33,6 +33,8 @@ def main(input_file, model):
 
     #TO DO: should do this for each column
     df = raw_data[np.isfinite(raw_data['output1'])]
+    #shuffle the dataframe here - have to do this here when sequences are a column
+    df = df.sample(frac=1)
     #ADD BACK
     df = df.set_index('sequence') 
 
@@ -50,28 +52,21 @@ def main(input_file, model):
     #ADD BACK
     print new_input_df.shape
     fin_input_df = new_input_df
-    #new_input_df = new_input_df.drop(new_input_df.columns[new_input_df.var() < 0.002], axis=1)
-    fin_input_df = fin_input_df.drop(fin_input_df.columns[fin_input_df.var() < 0.002], axis=1)
+
+    #ADD BACK
+    #fin_input_df = fin_input_df.drop(fin_input_df.columns[fin_input_df.var() < 0.002], axis=1)
 
     print fin_input_df.shape
     fin_input_df['output1'] = new_input_df['output1']
     print fin_input_df.columns
-    #print new_input_df.columns
 
-    #shuffle the dataframe here
-    df = fin_input_df.sample(frac=1)
 
-    #print new_input_df.head()
-
-    
-    #print df['output1']
-
-    dnaCNN = dm.proteinModel(df, filename=model) 
+    dnaCNN = dm.proteinModel(fin_input_df, filename=model) 
     
     dnaCNN.train()
     
     # dnaCNN.design()
 
-    # dnaCNN.save()
+    dnaCNN.save()
 
     # dnaCNN.test()
